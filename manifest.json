@@ -1,0 +1,13 @@
+{
+  "name": "Yavya Go",
+  "short_name": "Yavya Go",
+  "description": "Your taxi companion in Ulaanbaatar. Fair fares, driver cards, phrases.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3EFE6",
+  "theme_color": "#3E6B3A",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

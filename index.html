@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#F3EFE6">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>Yavya Go · UB Taxi Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  #splash{
+    position:fixed;inset:0;z-index:200;background:var(--accent);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    animation:splashOut .5s ease 1.8s forwards;
+  }
+  #splash .sp-logo{font-size:40px;font-weight:900;letter-spacing:-.02em;color:#fff}
+  #splash .sp-logo em{font-style:normal;color:var(--gold)}
+  #splash .sp-tag{font-size:14px;color:rgba(255,255,255,.85);font-weight:500}
+  @keyframes splashOut{to{opacity:0;visibility:hidden}}
+  #langScreen{position:fixed;inset:0;z-index:150;background:var(--base);display:none;flex-direction:column;align-items:center;justify-content:center;gap:var(--s2);padding:var(--s3)}
+  #langScreen.on{display:flex}
+  .lg-title{font-size:20px;font-weight:800;margin-bottom:var(--s1)}
+  .lg-list{display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px}
+  .lg-list button{min-height:54px;border-radius:var(--r);background:var(--card);box-shadow:var(--shadow);font-size:17px;font-weight:700;color:var(--text)}
+  .lg-list button.hint{border:2px solid var(--accent)}
+  @media (prefers-reduced-motion:reduce){#splash{animation:splashOut .3s ease 1.8s forwards}}
+  :root{
+    color-scheme:light;
+    --base:#F3EFE6; --card:#FFFFFF; --card2:#EAE4D6;
+    --text:#22301F; --mute:#8B9384; --faint:#B4BAAE;
+    --accent:#3E6B3A; --gold:#F0D488; --amber:#B7791F;
+    --r:12px; --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    --shadow:0 3px 10px rgba(34,48,31,.07);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:"Outfit",-apple-system,system-ui,sans-serif;
+    background:var(--base);color:var(--text);
+    display:flex;flex-direction:column;height:100dvh;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    max-width:430px;margin:0 auto;-webkit-text-size-adjust:100%;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;min-height:44px;background:none}
+  input{font-family:inherit}
+  .screen{display:none;flex-direction:column;flex:1;overflow-y:auto}
+  .screen.on{display:flex;animation:fadein .25s ease}
+  #home{overflow:hidden;justify-content:flex-start}
+  @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ============ HOME (original one-page layout) ============ */
+  header{padding:var(--s2) var(--s3) var(--s1)}
+  .logo{font-size:26px;font-weight:900;letter-spacing:-.02em}
+  .logo em{font-style:normal;color:var(--accent)}
+  .hello{color:var(--mute);font-size:14px;margin-top:2px;font-weight:500;flex:1}
+  .head-row{display:flex;align-items:center;gap:8px}
+  .head-actions{display:flex;gap:6px}
+  .iconbtn{min-height:40px;min-width:40px;border-radius:12px;background:var(--card);box-shadow:var(--shadow);font-size:17px}
+
+  .form{padding:var(--s2) var(--s3) 0}
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:var(--s1);padding-left:4px}
+  .field.from label{color:var(--amber)}
+  .pickbtn{
+    width:100%;min-height:52px;border-radius:var(--r);
+    background:var(--card);color:var(--text);font-size:17px;font-weight:700;
+    padding:0 var(--s2);box-shadow:var(--shadow);text-align:left;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    transition:transform .12s;
+  }
+  .pickbtn:active{transform:scale(.99)}
+  .field.from .pickbtn{border-left:4px solid var(--amber)}
+  .field.to .pickbtn{border-left:4px solid var(--accent)}
+  .gpsinfo{margin-left:auto;font-size:13px;padding:4px 6px;opacity:.7}
+  .pickbtn .pb-arr{color:var(--mute);font-size:18px}
+  .pickbtn .pb-ph{color:var(--faint);font-weight:500}
+
+  .go{
+    width:100%;margin-top:var(--s1);min-height:52px;border-radius:var(--r);
+    background:var(--accent);color:#fff;font-size:17px;font-weight:900;
+    transition:transform .12s,filter .18s;position:relative;
+  }
+  .go:active{transform:scale(.985)}
+  .go.loading{color:transparent;pointer-events:none}
+  .go.loading::after{content:"";position:absolute;inset:0;margin:auto;width:22px;height:22px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .locHint{text-align:center;font-size:12.5px;color:var(--mute);font-weight:600;margin-top:8px;display:none}
+  .locHint.on{display:block;animation:fadein .2s ease}
+  .result{margin:var(--s1) var(--s3) 0;padding:var(--s2);border-radius:var(--r);text-align:center;background-color:var(--accent);color:#fff;box-shadow:var(--shadow)}
+  .result .empty{color:rgba(255,255,255,.85);font-size:13.5px;font-weight:500;line-height:1.5}
+  .result .empty .e-mark{display:block;font-size:18px;margin-bottom:2px;color:var(--gold)}
+  .r-km{font-size:15px;color:rgba(255,255,255,.8);font-weight:500}
+  .r-fare{font-size:clamp(24px,6.5vw,30px);font-weight:800;margin:4px 0;color:var(--gold);line-height:1.2;overflow-wrap:break-word}
+  .r-usd{font-size:14px;color:rgba(255,255,255,.85);font-weight:600;margin-bottom:2px}
+  .r-sub{font-size:13.5px;color:rgba(255,255,255,.7)}
+  .showbtn{width:100%;margin-top:10px;min-height:48px;border-radius:var(--r);background:#fff;color:var(--accent);font-size:17px;font-weight:700;transition:transform .12s}
+  .showbtn:active{transform:scale(.985);background:var(--card2)}
+
+  .navrow{display:flex;gap:var(--s2);padding:12px var(--s3)}
+  .navbtn{flex:1;min-height:48px;border-radius:var(--r);background:var(--card);color:var(--text);font-size:16px;font-weight:600;box-shadow:var(--shadow);transition:transform .12s}
+  .navbtn:active{transform:scale(.985)}
+
+  .ytip{margin:0 var(--s3) var(--s1);display:flex;gap:8px;align-items:center;transition:opacity .5s ease;position:relative}
+  .ytip.fade{opacity:0}
+  .ytip .y-inner{flex:1;min-width:0}
+  .ytip .y-lbl{color:var(--accent);font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+  .ytip #ytipText{font-size:12.5px;line-height:1.45;color:var(--text)}
+  .y-next,.y-prev{color:var(--accent);font-size:20px;font-weight:800;min-height:auto;padding:0 6px;line-height:1;flex:0 0 auto}
+
+
+  /* Style 3: quote bar, left aligned */
+  .ytip[data-style="3"]{border-left:3px solid var(--accent);padding:2px 0 2px 12px}
+  .ytip[data-style="3"] .y-lbl{display:block;margin-bottom:2px}
+
+  .emg{margin-top:auto;padding:0 var(--s3) 4px;color:var(--mute);font-size:11px;font-weight:600;text-align:center}
+  .emg b{color:var(--text)}
+  .warn{margin-top:0;padding:0 var(--s3) 10px;color:var(--faint);font-size:10.5px;line-height:1.5;text-align:center}
+  .warn b{color:var(--mute);font-weight:600}
+
+  /* ============ DESTINATION PICKER (concept 2, as overlay) ============ */
+  #picker{position:fixed;inset:0;background:var(--base);z-index:40;display:none;flex-direction:column;max-width:430px;margin:0 auto}
+  #picker.on{display:flex;animation:fadein .2s ease}
+  .pk-top{display:flex;align-items:center;gap:10px;padding:var(--s2) var(--s3) 0}
+  .pk-back{background:var(--card);color:var(--text);border-radius:999px;padding:0 18px;font-size:15px;font-weight:600;box-shadow:var(--shadow)}
+  .pk-title{font-size:16px;font-weight:800}
+  .searchwrap{margin:var(--s2) var(--s3) 0;position:relative;flex:0 0 auto}
+  .search{
+    width:100%;min-height:50px;border-radius:var(--r);border:1.5px solid transparent;
+    background:var(--card);padding:0 40px 0 42px;font-size:16px;font-weight:600;color:var(--text);box-shadow:var(--shadow);
+  }
+  .search::placeholder{color:var(--faint);font-weight:500}
+  .search:focus{outline:none;border-color:var(--accent)}
+  .s-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--mute);font-size:15px;pointer-events:none}
+  .s-clear{position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--mute);font-size:14px;font-weight:800;padding:8px 10px;display:none;min-height:auto}
+  .s-clear.on{display:block}
+
+  .pk-scroll{flex:1;overflow-y:auto;padding-bottom:var(--s3)}
+  .sec{padding:var(--s2) var(--s3) 0}
+  .sec-t{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:800;margin-bottom:10px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dtile{
+    background:var(--card);border-radius:var(--r);padding:12px;text-align:left;
+    box-shadow:var(--shadow);transition:transform .12s,background .18s;min-height:64px;
+  }
+  .dtile:active{transform:scale(.97);background:var(--card2)}
+  .dtile .d-emo{font-size:20px}
+  .dtile .d-en{font-size:13.5px;font-weight:700;margin-top:4px;line-height:1.2}
+  .dtile .d-mn{font-size:11px;color:var(--mute);margin-top:2px;font-weight:500}
+
+  .cat{margin:10px var(--s3) 0;border-radius:var(--r);background:var(--card);box-shadow:var(--shadow);overflow:hidden}
+  .cat-h{width:100%;display:flex;align-items:center;gap:10px;padding:13px 14px;font-size:15px;font-weight:700;color:var(--text);text-align:left}
+  .cat-h .c-arr{margin-left:auto;color:var(--mute);transition:transform .2s}
+  .cat.open .c-arr{transform:rotate(90deg)}
+  .cat-list{display:none;padding:0 6px 6px}
+  .cat.open .cat-list{display:block}
+  .drow{width:100%;display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:10px;font-size:14px;font-weight:600;color:var(--text);text-align:left;transition:background .15s}
+  .drow:active{background:var(--card2)}
+  .drow .d-mn{font-size:11px;color:var(--mute);font-weight:500;display:block}
+
+  .searchres{padding:var(--s2) var(--s3) 0;display:none}
+  .searchres.on{display:block}
+  .searchres .drow{background:var(--card);box-shadow:var(--shadow);border-radius:var(--r);margin-bottom:6px}
+  .mapbtn{width:100%;margin-top:6px;padding:14px;border-radius:var(--r);background:var(--accent);color:#fff;font-size:14px;font-weight:700}
+  .mapbtn.loading{opacity:.6;pointer-events:none}
+  .nores{color:var(--mute);font-size:13px;padding:10px 4px}
+
+  /* ============ DRIVER CARD ============ */
+  #card{background:#1D2B1B}
+  .card-top{display:flex;justify-content:space-between;padding:var(--s2) var(--s3)}
+  .back{background:rgba(255,255,255,.14);color:#EDF3EE;border-radius:999px;padding:0 22px;font-size:16px;font-weight:600}
+  .card-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 var(--s3);text-align:center}
+  .ask{font-size:clamp(20px,5.5vw,26px);font-weight:600;color:#A9BCA4;line-height:1.35}
+  .ask-en{font-size:14px;color:#7E937A;font-weight:500;margin-top:4px}
+  .dest-mn{font-size:clamp(32px,9.5vw,50px);font-weight:800;margin:var(--s2) 0 var(--s1);line-height:1.15;overflow-wrap:break-word;color:#F5F8F3}
+  .dest-en{font-size:16px;color:#A9BCA4;font-weight:500}
+  .fare-card{margin:var(--s4) auto 0;background:var(--accent);color:#fff;border-radius:var(--r);padding:var(--s2) var(--s3);max-width:340px;width:100%}
+  .fare-card .lbl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.75);font-weight:700}
+  .fare-card .amt{font-size:clamp(22px,6.5vw,30px);font-weight:800;margin-top:4px;color:var(--gold);line-height:1.2;overflow-wrap:break-word}
+  .fare-card .usd{font-size:14px;color:rgba(255,255,255,.85);font-weight:600;margin-top:2px}
+  .fare-card .mnlbl{font-size:12px;color:rgba(255,255,255,.7);margin-top:4px;font-weight:500}
+  .thanksbtn{margin:var(--s2) var(--s3) 0;min-height:50px;border-radius:var(--r);background:var(--gold);color:#22301F;font-size:16px;font-weight:700}
+  .card-note{padding:var(--s2) var(--s3) var(--s3);text-align:center;font-size:11.5px;color:#7E937A}
+
+  /* ============ THANKS ============ */
+  #thanks{background:var(--accent)}
+  .thanks-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:var(--s3);cursor:pointer}
+  .t-mn{font-size:clamp(40px,12vw,64px);font-weight:800;color:#fff;line-height:1.1}
+  .t-say{margin-top:var(--s2);font-size:clamp(20px,6vw,28px);color:var(--gold);font-weight:800;font-style:italic}
+  .t-en{margin-top:var(--s1);font-size:16px;color:rgba(255,255,255,.85);font-weight:500}
+  .t-hint{position:absolute;bottom:var(--s4);left:0;right:0;font-size:12px;color:rgba(255,255,255,.6);text-align:center}
+
+  /* ============ PHRASES ============ */
+  #phrases .card-top .back{background:var(--card);color:var(--text);box-shadow:var(--shadow)}
+  .ph-hint{color:var(--faint);font-size:12px;font-weight:500;align-self:center}
+  .ph{margin:var(--s1) var(--s3);padding:var(--s2);border-radius:var(--r);background:var(--card);text-align:center;box-shadow:var(--shadow);display:block;width:calc(100% - 48px);transition:transform .12s}
+  .ph:active{transform:scale(.985)}
+  .ph .p-mn{font-size:20px;font-weight:800;color:var(--text)}
+  .ph .p-say{font-size:15px;color:var(--accent);margin-top:4px;font-weight:700;font-style:italic}
+  .ph .p-en{font-size:12px;color:var(--mute);margin-top:4px;font-weight:500}
+
+  #zoom{position:fixed;inset:0;background:var(--accent);z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;padding:var(--s3);text-align:center;cursor:pointer}
+  #zoom.on{display:flex;animation:fadein .2s ease}
+  #zoom .z-mn{font-size:clamp(34px,10vw,56px);font-weight:800;color:#fff;line-height:1.2;overflow-wrap:break-word;max-width:100%}
+  #zoom .z-say{margin-top:10px;font-size:clamp(18px,5vw,26px);color:var(--gold);font-weight:800;font-style:italic}
+  #zoom .z-en{margin-top:var(--s2);font-size:15px;color:rgba(255,255,255,.85);font-weight:500}
+  #zoom .z-hint{position:absolute;bottom:26px;font-size:12px;color:rgba(255,255,255,.6)}
+
+  /* rate modal */
+  #rateModal,#homeModal,#gpsModal{position:fixed;inset:0;background:rgba(34,48,31,.5);z-index:70;display:none;align-items:center;justify-content:center;padding:var(--s3)}
+  #rateModal.on,#homeModal.on,#gpsModal.on{display:flex}
+  .modal{background:var(--card);border-radius:20px;padding:var(--s3);max-width:340px;width:100%;box-shadow:var(--shadow)}
+  .modal h3{font-size:17px;font-weight:800;margin-bottom:6px}
+  .modal p{font-size:12.5px;color:var(--mute);margin-bottom:var(--s2);line-height:1.55}
+  .modal input{width:100%;min-height:52px;border-radius:var(--r);border:1.5px solid var(--card2);background:var(--base);color:var(--text);font-size:18px;font-weight:800;text-align:center}
+  .modal input:focus{outline:none;border-color:var(--accent)}
+  .modal .row{display:flex;gap:var(--s1);margin-top:var(--s2)}
+  .modal button{flex:1;border-radius:var(--r);font-weight:800;font-size:14px;min-height:48px}
+  .save{background:var(--accent);color:#fff}
+  .cancel{background:var(--card2);color:var(--text)}
+
+  #langScreen{position:fixed;inset:0;z-index:150;background:var(--base);display:none;flex-direction:column;align-items:center;justify-content:center;gap:var(--s2);padding:var(--s3)}
+  #langScreen.on{display:flex}
+  .lg-title{font-size:20px;font-weight:800;margin-bottom:var(--s1)}
+  .lg-list{display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px}
+  .lg-list button{min-height:54px;border-radius:var(--r);background:var(--card);box-shadow:var(--shadow);font-size:17px;font-weight:700;color:var(--text)}
+  .lg-list button.hint{border:2px solid var(--accent)}
+  @media (prefers-reduced-motion:reduce){
+    .screen.on,#zoom.on,#picker.on{animation:none}
+    .dtile:active,.ph:active,.go:active{transform:none}
+  }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="sp-logo">yavya<em>go</em></div>
+  <div class="sp-tag">Your taxi companion in Ulaanbaatar</div>
+</div>
+
+
+<!-- ============ HOME ============ -->
+<div id="langScreen">
+  <div class="lg-title">Choose your language</div>
+  <div class="lg-list">
+    <button onclick="setLang('en')">English</button>
+    <button onclick="setLang('ko')">한국어</button>
+    <button onclick="setLang('ja')">日本語</button>
+    <button onclick="setLang('zh')">中文</button>
+    <button onclick="setLang('ru')">Русский</button>
+  </div>
+</div>
+
+<div class="screen on" id="home">
+  <header>
+    <div class="head-row">
+      <div class="hello" data-i18n="hello">Sain baina uu! Where are we going?</div>
+      <div class="head-actions">
+        <button class="iconbtn" onclick="show('phrases')" aria-label="Phrases">💬</button>
+        <button class="iconbtn" onclick="openLang()" aria-label="Language">🌐</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="form">
+    <div class="field from">
+      <label data-i18n="from">From</label>
+      <button class="pickbtn" onclick="openPicker('from')">
+        <span id="fromVal">📍 My location</span><span class="gpsinfo" id="gpsInfoHome" role="button" aria-label="Location help" onclick="event.stopPropagation();openGpsHelp()">❗</span><span class="pb-arr">›</span>
+      </button>
+    </div>
+    <div class="field to">
+      <label data-i18n="to">To</label>
+      <button class="pickbtn" onclick="openPicker('to')">
+        <span id="toVal" class="pb-ph" data-i18n="chooseDest">Choose destination</span><span class="pb-arr">›</span>
+      </button>
+    </div>
+    <button class="go" id="goBtn" onclick="calc()" data-i18n="calc">Yavya! · Calculate fare</button>
+    <div class="locHint" id="locHint" data-i18n="locHint">📍 Finding your location…</div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="empty" id="emptyState">
+      <span class="e-mark">₮</span>
+      Pick where you're going and tap <b>Yavya!</b><br>Your fair fare will appear here.
+    </div>
+    <div id="fareState" style="display:none">
+      <div class="r-km" id="rKm"></div>
+      <div class="r-fare" id="rFare"></div>
+      <div class="r-usd" id="rUsd"></div>
+      <div class="r-sub" id="rSub"></div>
+      <button class="showbtn" onclick="openCard()">Show to driver ›</button>
+    </div>
+  </div>
+
+  <div class="navrow">
+    <button class="navbtn" onclick="goHome()" data-i18n="homeBtn">🏠 Home</button>
+    <button class="navbtn" onclick="openRate()">₮ <span id="rateShow"></span>/km</button>
+  </div>
+
+  <div class="ytip" id="ytip" data-style="3">
+    <button class="y-prev" onclick="prevYtip()" aria-label="Previous tip">‹</button>
+    <div class="y-inner">
+      <span class="y-lbl" data-i18n="tipLbl">Yavya tip</span>
+      <span id="ytipText"></span>
+    </div>
+    <button class="y-next" onclick="nextYtip()" aria-label="Next tip">›</button>
+  </div>
+
+  <div class="emg" data-i18n="emg">🆘 Emergency: Police <b>102</b> · Ambulance <b>103</b></div>
+  <div class="warn" data-i18n="warn">Fares are approximate, based on straight-line distance and the local street rate. Agree on the price with the driver before the ride. Cash (₮) is standard.</div>
+</div>
+
+<!-- ============ DESTINATION PICKER ============ -->
+<div id="picker">
+  <div class="pk-top">
+    <button class="pk-back" onclick="closePicker()" data-i18n="back">‹ Back</button>
+    <span class="pk-title" id="pkTitle">Choose destination</span>
+  </div>
+  <div class="searchwrap">
+    <span class="s-icon">🔍</span>
+    <input class="search" id="searchBox" placeholder="Search any destination…" autocomplete="off">
+    <button class="s-clear" id="sClear" onclick="clearSearch()">✕</button>
+  </div>
+  <div class="searchres" id="searchRes"></div>
+  <div class="pk-scroll" id="browse">
+    <div class="sec" id="gpsSec" style="display:none">
+      <button class="drow" style="background:var(--card);box-shadow:var(--shadow);border-radius:12px;font-weight:700" onclick="pickFromGps()"><span data-i18n="gpsRow">📍 My location (GPS)</span><span class="gpsinfo" role="button" aria-label="Location help" onclick="event.stopPropagation();openGpsHelp()">❗</span></button>
+    </div>
+    <div class="sec" id="recentSec" style="display:none">
+      <div class="sec-t">Recent</div>
+      <div id="recentList"></div>
+    </div>
+    <div class="sec" id="topSec">
+      <div class="sec-t" id="topSecT">Top destinations</div>
+      <div class="grid" id="topGrid"></div>
+    </div>
+    <div class="sec" style="padding-left:0;padding-right:0">
+      <div class="sec-t" style="padding:0 24px">More places</div>
+      <div id="catList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DRIVER CARD ============ -->
+<div class="screen" id="card">
+  <div class="card-top">
+    <button class="back" onclick="show('home')" data-i18n="back">‹ Back</button>
+    <button class="back" onclick="show('phrases')" data-i18n="phrasesShort">Phrases</button>
+  </div>
+  <div class="card-body">
+    <div class="ask">Намайг энд хүргэж өгнө үү:</div>
+    <div class="ask-en" data-i18n="askEn">Please take me here:</div>
+    <div class="dest-mn" id="cMn"></div>
+    <div class="dest-en" id="cEn"></div>
+    <div class="fare-card">
+      <div class="lbl" data-i18n="fairFare">Fair fare · Шударга үнэ</div>
+      <div class="amt" id="cFare">—</div>
+      <div class="usd" id="cUsd"></div>
+      <div class="mnlbl" id="cKm"></div>
+    </div>
+  </div>
+  <button class="thanksbtn" onclick="show('thanks')" data-i18n="arrived">Arrived · Say thanks ›</button>
+  <div class="card-note" data-i18n="cardNote">Show this screen to the driver · Agree on price before the ride</div>
+</div>
+
+<!-- ============ THANKS ============ -->
+<div class="screen" id="thanks">
+  <div class="thanks-body" onclick="show('home')">
+    <div class="t-mn">Баярлалаа!</div>
+    <div class="t-say">"Bayarlalaa"</div>
+    <div class="t-en" data-i18n="thanksEn">Thank you for the ride</div>
+    <div class="t-hint" data-i18n="tapNewTrip">Tap anywhere for a new trip</div>
+  </div>
+</div>
+
+<!-- ============ PHRASES ============ -->
+<div class="screen" id="phrases">
+  <div class="card-top">
+    <button class="back" onclick="show('home')" data-i18n="back">‹ Back</button>
+    <span class="ph-hint" data-i18n="phraseHint">Tap a phrase to show it big</span>
+  </div>
+  <div id="phList" style="padding-bottom:24px"></div>
+</div>
+
+<div id="zoom" onclick="this.classList.remove('on')">
+  <div class="z-mn" id="zMn"></div>
+  <div class="z-say" id="zSay"></div>
+  <div class="z-en" id="zEn"></div>
+  <div class="z-hint" data-i18n="zoomHint">Tap anywhere to close</div>
+</div>
+
+<div id="homeModal">
+  <div class="modal" style="text-align:center">
+    <div style="font-size:34px">🏠</div>
+    <h3 id="hmName" style="margin-top:6px"></h3>
+    <p id="hmText"></p>
+    <div class="row">
+      <button class="cancel" onclick="closeHomeModal();openPicker('home')" data-i18n="changeHome">Change home</button>
+      <button class="save" id="hmGo" onclick="closeHomeModal();goHomeNow()">Got it ›</button>
+    </div>
+  </div>
+</div>
+
+<div id="gpsModal">
+  <div class="modal">
+    <h3 data-i18n="gpsTitle">My location not working?</h3>
+    <p style="margin-bottom:8px" data-i18n="gpsIos"><b>iPhone:</b> Settings → Privacy &amp; Security → Location Services. Turn it <b>On</b>, then scroll to <b>Safari Websites</b> and set it to <b>While Using the App</b>.</p>
+    <p data-i18n="gpsAndroid"><b>Android:</b> Settings → Location → turn <b>On</b>. Then in Chrome: ⋮ menu → Settings → Site settings → Location → <b>Allow</b>.</p>
+    <p data-i18n="gpsThen">Then close the browser fully and reopen this app.</p>
+    <div class="row">
+      <button class="save" onclick="$('gpsModal').classList.remove('on')" data-i18n="gotItPlain">Got it</button>
+    </div>
+  </div>
+</div>
+
+<div id="rateModal">
+  <div class="modal">
+    <h3 data-i18n="rateTitle">Street rate (₮ per km)</h3>
+    <p data-i18n="rateDesc">Informal UB taxis charge per km. Update this if locals tell you the current rate.</p>
+    <input type="number" id="rateInput" inputmode="numeric">
+    <div class="row">
+      <button class="cancel" onclick="closeRate()" data-i18n="cancel">Cancel</button>
+      <button class="save" onclick="saveRate()" data-i18n="save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= DATA ================= */
+const TOP = [
+ {emo:"✈️", en:"Chinggis Khaan Airport", mn:"Чингис хаан нисэх буудал", lat:47.6469, lng:106.8194},
+ {emo:"🏛", en:"Sükhbaatar Square", mn:"Сүхбаатарын талбай", lat:47.9188, lng:106.9176},
+ {emo:"🕌", en:"Gandan Monastery", mn:"Гандантэгчинлэн хийд", lat:47.9218, lng:106.8944},
+ {emo:"🗼", en:"Zaisan Memorial", mn:"Зайсан толгой", lat:47.8867, lng:106.9153},
+ {emo:"🏬", en:"State Department Store", mn:"Улсын их дэлгүүр", lat:47.9167, lng:106.9057},
+ {emo:"🛍", en:"Narantuul Market", mn:"Нарантуул зах", lat:47.9106, lng:106.9497},
+ {emo:"🏙", en:"Blue Sky Tower", mn:"Хөх Тэнгэр цамхаг", lat:47.9146, lng:106.9200},
+ {emo:"🏺", en:"National Museum", mn:"Үндэсний музей", lat:47.9203, lng:106.9147},
+ {emo:"🏯", en:"Bogd Khan Palace", mn:"Богд хааны ордон", lat:47.8970, lng:106.9060},
+ {emo:"🏨", en:"Shangri-La Mall", mn:"Шангри-Ла Молл", lat:47.9130, lng:106.9210},
+];
+
+const CATS = [
+ {name:"🚉 Transport", items:[
+   {en:"Central Railway Station", mn:"Төмөр замын вокзал", lat:47.9085, lng:106.8830},
+   {en:"Dragon Bus Terminal", mn:"Драгон авто вокзал", lat:47.9127, lng:106.8330},
+   {en:"Chinggis Khaan Airport", mn:"Чингис хаан нисэх буудал", lat:47.6469, lng:106.8194},
+ ]},
+ {name:"🕌 Sights & culture", items:[
+   {en:"Choijin Lama Temple", mn:"Чойжин ламын сүм музей", lat:47.9152, lng:106.9179},
+   {en:"National Amusement Park", mn:"Үндэсний соёл амралтын хүрээлэн", lat:47.9048, lng:106.9296},
+   {en:"Chinggis Khaan Statue (Tsonjin Boldog)", mn:"Чингис хааны морьт хөшөө", lat:48.0027, lng:107.5312},
+ ]},
+ {name:"🛍 Shopping", items:[
+   {en:"Gobi Cashmere Factory Store", mn:"Говь кашемир дэлгүүр", lat:47.8930, lng:106.9330},
+   {en:"Hunnu Mall", mn:"Хүннү Молл", lat:47.8550, lng:106.7660},
+   {en:"Galleria Ulaanbaatar", mn:"Галлериа Улаанбаатар", lat:47.9176, lng:106.9160},
+ ]},
+ {name:"🏨 Hotels", items:[
+   {en:"Shangri-La Ulaanbaatar", mn:"Шангри-Ла зочид буудал", lat:47.9130, lng:106.9205},
+   {en:"Kempinski Hotel Khan Palace", mn:"Кемпински Хан Палас", lat:47.9188, lng:106.9330},
+   {en:"Ramada Ulaanbaatar Citycenter", mn:"Рамада зочид буудал", lat:47.9165, lng:106.9080},
+   {en:"Best Western Premier Tuushin", mn:"Бест Вестерн Түүшин", lat:47.9195, lng:106.9160},
+   {en:"Holiday Inn Ulaanbaatar", mn:"Холидей Инн", lat:47.9205, lng:106.9240},
+   {en:"Bayangol Hotel", mn:"Баянгол зочид буудал", lat:47.9080, lng:106.9130},
+   {en:"Chinggis Khaan Hotel", mn:"Чингис хаан зочид буудал", lat:47.9110, lng:106.9290},
+   {en:"Blue Sky Hotel", mn:"Хөх Тэнгэр зочид буудал", lat:47.9146, lng:106.9200},
+ ]},
+ {name:"🍜 Food & nightlife", items:[
+   {en:"Seoul Street", mn:"Сөүлийн гудамж", lat:47.9135, lng:106.9060},
+   {en:"Beatles Square", mn:"Битлзийн талбай", lat:47.9152, lng:106.9075},
+ ]},
+ {name:"🏥 Help", items:[
+   {en:"Intermed Hospital", mn:"Интермед эмнэлэг", lat:47.9110, lng:106.9330},
+ ]},
+];
+
+const ALL = [...TOP, ...CATS.flatMap(c=>c.items)];
+
+const PHRASES = [
+ {mn:"Энд зогсоно уу", say:"End zogsono uu", en:"Stop here, please"},
+ {mn:"Хэд вэ?", say:"Khed ve?", en:"How much?"},
+ {mn:"Хэтэрхий үнэтэй байна", say:"Kheterkhii untei baina", en:"That's too expensive"},
+ {mn:"Чигээрээ яваарай", say:"Chigeeree yavaarai", en:"Go straight"},
+ {mn:"Зүүн тийш", say:"Zuun tiish", en:"Turn left"},
+ {mn:"Баруун тийш", say:"Baruun tiish", en:"Turn right"},
+ {mn:"5 минут хүлээгээрэй", say:"Tavan minut khuleegeerei", en:"Please wait 5 minutes"},
+ {mn:"Удаан яваарай", say:"Udaan yavaarai", en:"Please slow down"},
+ {mn:"Би бэлнээр төлнө", say:"Bi belneer tulnu", en:"I'll pay cash"},
+ {mn:"Баярлалаа", say:"Bayarlalaa", en:"Thank you"},
+];
+
+const YTIPS = [
+ "Try to ride in the morning if you can. Our traffic gets rough around 8 to 10 and again 5 to 8.",
+ "Say «Sain baina uu» when you hop in. Trust me, the driver warms right up.",
+ "Carry small bills, a few 1,000s and 5,000s. Nobody has change for a 20,000.",
+ "Don't wait for a yellow taxi. We flag down regular cars all the time, it's completely normal.",
+ "Always settle the price before the car moves. A number and a nod, that's all it takes.",
+ "At night, stick to a proper taxi rather than a random car. Daytime, either is fine.",
+ "Our streets don't really have names or numbers. Show the driver a landmark and you're golden.",
+ "If the driver looks lost, don't worry. Give him a nearby big building and he'll find it.",
+ "Rush hour can double your time in the car. Leave a little early and relax into it.",
+ "Keep your phone charged before a ride. You'll want it to show me where you're headed.",
+ "We run on cash here, mostly. Keep some togrog on you even if you love your card.",
+ "ATMs are easy to find in the city. Khan Bank and Golomt are on nearly every corner.",
+ "Tell the driver your destination first, agree the price, then get in. Saves any awkwardness later.",
+ "No need to tip taxis. If you round up, that's already a kind gesture to us.",
+ "Big notes are a pain for small rides. Break your 20,000s at a shop or cafe first.",
+ "Our drivers are friendly but our traffic is wild. Look twice crossing the street, cars won't stop for you.",
+ "Watch your bag in busy spots like the Department Store or Narantuul. Just keep it in front of you.",
+ "Crossing the road here is a sport. Follow a local and cross when they cross.",
+ "Save your hotel's name in Mongolian on your phone. Makes the ride home effortless.",
+ "If something feels off with a ride, just step out at the next busy corner. No drama.",
+ "Learn one word and it's «Bayarlalaa», thank you. It opens every door in Mongolia.",
+ "Step on someone's foot by accident? Just shake their hand. That's how we undo the bad luck here.",
+ "Never pat someone's head, even a child's. To us the head is a little bit sacred.",
+ "Take things with your right hand, or both hands. It's a small thing that means a lot to us.",
+ "If someone hands you snuff or tea, receive it with your right hand. You'll get a warm smile back.",
+ "Don't step on a doorway threshold when you enter a ger. Step right over it.",
+ "Pointing your feet at the stove or at people is a no-no in a ger. Tuck them under you.",
+ "We don't whistle indoors here. Old belief says it calls in bad luck.",
+ "Take your hat off when you greet an elder. Little gestures like this go a long way.",
+ "If a family invites you in, wait to be offered a seat, then sit. Standing around feels odd to us.",
+ "Someone will offer you suutei tsai, our milk tea. Take it with your right hand and have a sip.",
+ "Try the khuushuur, a fried meat pastry. Cheap, hot, and every Mongolian grew up on it.",
+ "Vegetarian? Say «makh-gui» (no meat). It's easy in the city, tricky out in the countryside.",
+ "Buuz are our steamed dumplings. Order a plate, you won't regret it.",
+ "Tap water in the city is best avoided. Grab bottled, it's sold everywhere and cheap.",
+ "Airag is fermented mare's milk. Locals love it. Try a little, but go slow, it's an acquired taste.",
+ "Aaruul are those hard dried curds you'll see. Suck, don't bite, your teeth will thank you.",
+ "If it's winter, sort the price quick. Minus 30 doesn't wait for anyone, friend.",
+ "Our weather changes its mind fast. Carry a light layer even on a sunny morning.",
+ "Summer sun here is strong and the wind never quits. Sunscreen and a hat, always.",
+ "Evenings cool down fast, even in summer. A sweater in your bag saves the night.",
+ "We get about 250 sunny days a year. That's why we call this the land of eternal blue sky.",
+ "Grab a local SIM at the airport, Unitel or Mobicom. Cheap data makes everything easier.",
+ "Download an offline map before you wander. Signal in the city is good, but it's nice to have.",
+ "The State Department Store is a one-stop shop. Souvenirs, snacks, an ATM, all under one roof.",
+ "Cashmere here is world class and honestly priced. The Gobi store is the real deal.",
+ "Naran Tuul market is a treasure hunt. Haggle gently and with a smile, that's half the fun.",
+ "Weekends everything runs a little later. Don't rush your morning, nobody else is.",
+ "Public toilets can be scarce. Cafes and malls are your friend, pop in when you can.",
+ "Most young folks speak some English, especially in cafes. Don't be shy to ask for help.",
+ "We're a proud, friendly bunch. A little curiosity about our culture and you've made a friend for life.",
+ "Those blue scarves on the hills are gifts to the sky. Walk around the stone piles clockwise, three times.",
+ "Genghis Khan is everywhere here, on the money, the airport, the vodka. We're rather fond of him.",
+ "Slow down and look up. That huge open sky is the thing you'll remember most about Mongolia.",
+];
+
+
+/* ================= LANGUAGES ================= */
+const I18N = {
+en:{hello:"Sain baina uu! Where are we going?",from:"From",to:"To",chooseDest:"Choose destination",myLocation:"📍 My location",calc:"Yavya! · Calculate fare",emptyText:'Pick where you\'re going and tap <b>Yavya!</b><br>Your fair fare will appear here.',kmByRoad:k=>`≈ ${k} km by road`,fareSub:r=>`${r} ₮/km × distance, rounded`,showDriver:"Show to driver ›",phrasesBtn:"💬 Phrases",phrasesShort:"Phrases",homeBtn:"🏠 Home",tipLbl:"Yavya tip",emg:"🆘 Emergency: Police <b>102</b> · Ambulance <b>103</b>",warn:"Fares are <b>approximate</b>, based on straight-line distance and the local street rate. Agree on the price with the driver <b>before</b> the ride. Cash (₮) is standard.",locHint:"📍 Finding your location…",pkFrom:"Start from",pkHome:"Set your hotel or home",searchDest:"Search any destination…",searchLoc:"Search your location…",searchHome:"Search your hotel or guesthouse…",topDest:"Top destinations",topLoc:"Top locations",morePlaces:"More places",recent:"Recent",gpsRow:"📍 My location (GPS)",nothingList:"Nothing in our list.",searchMapFor:q=>`🗺 Search the map for "${q}"`,searchingMap:"Searching the map…",mapNoResults:q=>`No map results for "${q}" around Ulaanbaatar. Check the spelling or try an English or Mongolian name.`,mapFail:"Map search failed. Check your connection and try again.",alreadyHere:"You're already here",locUnavail:"Location unavailable",enableLoc:"Enable location or pick a From place",askEn:"Please take me here:",fairFare:"Fair fare · Шударга үнэ",arrived:"Arrived · Say thanks ›",cardNote:"Show this screen to the driver · Agree on price before the ride",thanksEn:"Thank you for the ride",tapNewTrip:"Tap anywhere for a new trip",phraseHint:"Tap a phrase to show it big",zoomHint:"Tap anywhere to close",back:"‹ Back",rateTitle:"Street rate (₮ per km)",rateDesc:"Informal UB taxis charge per km. Update this if locals tell you the current rate.",cancel:"Cancel",save:"Save",homeSaved:"Saved as your home. Tap the <b>🏠 Home</b> button anytime and your ride home card appears instantly.",rideHomeQ:"Ride home to this place?",changeHome:"Change home",goHomeBtn:"Go home ›",gotIt:"Got it ›",gotItPlain:"Got it",gpsTitle:"My location not working?",gpsIos:"<b>iPhone:</b> Settings → Privacy &amp; Security → Location Services. Turn it <b>On</b>, then scroll to <b>Safari Websites</b> and set it to <b>While Using the App</b>.",gpsAndroid:"<b>Android:</b> Settings → Location → turn <b>On</b>. Then in Chrome: ⋮ menu → Settings → Site settings → Location → <b>Allow</b>.",gpsThen:"Then close the browser fully and reopen this app.",
+meanings:["Stop here, please","How much?","That's too expensive","Go straight","Turn left","Turn right","Please wait 5 minutes","Please slow down","I'll pay cash","Thank you"]},
+ko:{hello:"Sain baina uu! 어디로 갈까요?",from:"출발지",to:"목적지",chooseDest:"목적지 선택",myLocation:"📍 내 위치",calc:"Yavya! · 요금 계산",emptyText:"목적지를 고르고 <b>Yavya!</b>를 누르세요.<br>적정 요금이 여기에 표시됩니다.",kmByRoad:k=>`도로 기준 약 ${k} km`,fareSub:r=>`${r} ₮/km × 거리, 반올림`,showDriver:"기사에게 보여주기 ›",phrasesBtn:"💬 회화",phrasesShort:"회화",homeBtn:"🏠 숙소",tipLbl:"Yavya 팁",emg:"🆘 긴급: 경찰 <b>102</b> · 구급차 <b>103</b>",warn:"요금은 직선거리와 현지 시세 기준의 <b>대략적인</b> 금액입니다. 출발 <b>전에</b> 기사와 가격을 합의하세요. 현금(₮)이 기본입니다.",locHint:"📍 위치 확인 중…",pkFrom:"출발지",pkHome:"숙소 설정",searchDest:"목적지 검색…",searchLoc:"위치 검색…",searchHome:"호텔·게스트하우스 검색…",topDest:"인기 목적지",topLoc:"주요 위치",morePlaces:"더 많은 장소",recent:"최근",gpsRow:"📍 내 위치 (GPS)",nothingList:"목록에 없습니다.",searchMapFor:q=>`🗺 지도에서 "${q}" 검색`,searchingMap:"지도 검색 중…",mapNoResults:q=>`울란바토르 주변에서 "${q}" 결과가 없습니다. 철자를 확인하거나 영어·몽골어 이름으로 시도해 보세요.`,mapFail:"지도 검색 실패. 연결을 확인하고 다시 시도하세요.",alreadyHere:"이미 도착해 있어요",locUnavail:"위치를 사용할 수 없음",enableLoc:"위치를 켜거나 출발지를 선택하세요",askEn:"여기로 데려다 주세요:",fairFare:"적정 요금 · Шударга үнэ",arrived:"도착 · 감사 인사 ›",cardNote:"이 화면을 기사에게 보여주세요 · 출발 전 가격 합의",thanksEn:"태워 주셔서 감사합니다",tapNewTrip:"화면을 누르면 새 여정 시작",phraseHint:"문장을 누르면 크게 표시",zoomHint:"아무 곳이나 눌러 닫기",back:"‹ 뒤로",rateTitle:"시세 (₮/km)",rateDesc:"울란바토르 택시는 km당 요금입니다. 현지인이 알려주는 시세로 업데이트하세요.",cancel:"취소",save:"저장",homeSaved:"숙소로 저장했습니다. 언제든 <b>🏠 숙소</b> 버튼을 누르면 귀가 카드가 바로 표시됩니다.",rideHomeQ:"이곳으로 갈까요?",changeHome:"숙소 변경",goHomeBtn:"귀가 ›",gotIt:"확인 ›",gotItPlain:"확인",gpsTitle:"내 위치가 안 되나요?",gpsIos:"<b>iPhone:</b> 설정 → 개인정보 보호 및 보안 → 위치 서비스 <b>켬</b>, 아래 <b>Safari 웹사이트</b>를 <b>앱을 사용하는 동안</b>으로 설정.",gpsAndroid:"<b>Android:</b> 설정 → 위치 <b>켬</b>. Chrome: ⋮ → 설정 → 사이트 설정 → 위치 → <b>허용</b>.",gpsThen:"브라우저를 완전히 닫고 앱을 다시 여세요.",
+meanings:["여기서 세워 주세요","얼마예요?","너무 비싸요","직진해 주세요","좌회전","우회전","5분만 기다려 주세요","천천히 가 주세요","현금으로 낼게요","감사합니다"]},
+ja:{hello:"Sain baina uu! どこへ行きますか？",from:"出発地",to:"目的地",chooseDest:"目的地を選択",myLocation:"📍 現在地",calc:"Yavya! · 料金を計算",emptyText:"行き先を選んで<b>Yavya!</b>をタップ。<br>適正料金がここに表示されます。",kmByRoad:k=>`道路距離 約${k} km`,fareSub:r=>`${r} ₮/km × 距離（概算）`,showDriver:"運転手に見せる ›",phrasesBtn:"💬 フレーズ",phrasesShort:"フレーズ",homeBtn:"🏠 ホーム",tipLbl:"Yavyaのコツ",emg:"🆘 緊急: 警察 <b>102</b> · 救急 <b>103</b>",warn:"料金は直線距離と現地相場に基づく<b>概算</b>です。乗車<b>前に</b>運転手と料金を確認してください。現金(₮)が基本です。",locHint:"📍 現在地を取得中…",pkFrom:"出発地",pkHome:"宿泊先を設定",searchDest:"目的地を検索…",searchLoc:"現在地付近を検索…",searchHome:"ホテルを検索…",topDest:"人気の目的地",topLoc:"主要スポット",morePlaces:"その他の場所",recent:"最近",gpsRow:"📍 現在地 (GPS)",nothingList:"リストにありません。",searchMapFor:q=>`🗺 地図で「${q}」を検索`,searchingMap:"地図を検索中…",mapNoResults:q=>`ウランバートル周辺で「${q}」は見つかりません。スペルを確認するか、英語かモンゴル語名でお試しください。`,mapFail:"地図検索に失敗。接続を確認して再試行してください。",alreadyHere:"すでに到着しています",locUnavail:"位置情報が利用できません",enableLoc:"位置情報を有効にするか出発地を選択",askEn:"ここまでお願いします:",fairFare:"適正料金 · Шударга үнэ",arrived:"到着 · お礼を言う ›",cardNote:"この画面を運転手に見せてください · 乗車前に料金を確認",thanksEn:"ご乗車ありがとうございました",tapNewTrip:"タップして新しい移動へ",phraseHint:"タップで大きく表示",zoomHint:"タップで閉じる",back:"‹ 戻る",rateTitle:"相場 (₮/km)",rateDesc:"ウランバートルのタクシーはkm単位。現地で聞いた相場に更新してください。",cancel:"キャンセル",save:"保存",homeSaved:"宿泊先として保存しました。いつでも<b>🏠 ホーム</b>をタップすると帰宅カードが表示されます。",rideHomeQ:"ここへ帰りますか？",changeHome:"変更",goHomeBtn:"帰る ›",gotIt:"OK ›",gotItPlain:"OK",gpsTitle:"現在地が使えない？",gpsIos:"<b>iPhone:</b> 設定 → プライバシーとセキュリティ → 位置情報サービスを<b>オン</b>、下の<b>Safariのウェブサイト</b>を<b>使用中のみ</b>に。",gpsAndroid:"<b>Android:</b> 設定 → 位置情報を<b>オン</b>。Chrome: ⋮ → 設定 → サイトの設定 → 位置情報 → <b>許可</b>。",gpsThen:"ブラウザを完全に閉じて、アプリを開き直してください。",
+meanings:["ここで止めてください","いくらですか？","高すぎます","まっすぐ","左へ","右へ","5分待ってください","ゆっくりお願いします","現金で払います","ありがとうございます"]},
+zh:{hello:"Sain baina uu! 我们去哪里？",from:"出发地",to:"目的地",chooseDest:"选择目的地",myLocation:"📍 我的位置",calc:"Yavya! · 计算车费",emptyText:"选择目的地并点击<b>Yavya!</b><br>合理车费会显示在这里。",kmByRoad:k=>`按道路约 ${k} 公里`,fareSub:r=>`${r} ₮/公里 × 距离（取整）`,showDriver:"给司机看 ›",phrasesBtn:"💬 常用语",phrasesShort:"常用语",homeBtn:"🏠 住处",tipLbl:"Yavya 小贴士",emg:"🆘 紧急: 警察 <b>102</b> · 急救 <b>103</b>",warn:"车费为根据直线距离和当地价格的<b>估算</b>。上车<b>前</b>请与司机谈好价格。通常使用现金(₮)。",locHint:"📍 正在获取位置…",pkFrom:"出发地",pkHome:"设置住处",searchDest:"搜索目的地…",searchLoc:"搜索您的位置…",searchHome:"搜索酒店或民宿…",topDest:"热门目的地",topLoc:"主要地点",morePlaces:"更多地点",recent:"最近",gpsRow:"📍 我的位置 (GPS)",nothingList:"列表中没有。",searchMapFor:q=>`🗺 在地图上搜索“${q}”`,searchingMap:"正在搜索地图…",mapNoResults:q=>`乌兰巴托附近没有“${q}”的结果。请检查拼写，或尝试英文或蒙古语名称。`,mapFail:"地图搜索失败。请检查网络后重试。",alreadyHere:"您已在此地",locUnavail:"无法获取位置",enableLoc:"开启定位或选择出发地",askEn:"请送我到这里:",fairFare:"合理车费 · Шударга үнэ",arrived:"到达 · 说声谢谢 ›",cardNote:"把此屏幕给司机看 · 上车前谈好价格",thanksEn:"谢谢您送我",tapNewTrip:"点按任意处开始新行程",phraseHint:"点按短语放大显示",zoomHint:"点按任意处关闭",back:"‹ 返回",rateTitle:"街价 (₮/公里)",rateDesc:"乌兰巴托出租车按公里计价。可根据当地人告知的价格更新。",cancel:"取消",save:"保存",homeSaved:"已保存为您的住处。随时点击<b>🏠 住处</b>，回家卡片会立即显示。",rideHomeQ:"回到这里吗？",changeHome:"更改",goHomeBtn:"回家 ›",gotIt:"好的 ›",gotItPlain:"好的",gpsTitle:"定位不可用？",gpsIos:"<b>iPhone:</b> 设置 → 隐私与安全 → 定位服务<b>开启</b>，下拉将<b>Safari 网站</b>设为<b>使用App期间</b>。",gpsAndroid:"<b>Android:</b> 设置 → 位置<b>开启</b>。Chrome: ⋮ → 设置 → 网站设置 → 位置 → <b>允许</b>。",gpsThen:"完全关闭浏览器后重新打开本应用。",
+meanings:["请在这里停车","多少钱？","太贵了","直走","左转","右转","请等5分钟","请开慢点","我付现金","谢谢"]},
+ru:{hello:"Sain baina uu! Куда едем?",from:"Откуда",to:"Куда",chooseDest:"Выберите место",myLocation:"📍 Моё местоположение",calc:"Yavya! · Рассчитать цену",emptyText:"Выберите место и нажмите <b>Yavya!</b><br>Честная цена появится здесь.",kmByRoad:k=>`≈ ${k} км по дороге`,fareSub:r=>`${r} ₮/км × расстояние, округлено`,showDriver:"Показать водителю ›",phrasesBtn:"💬 Фразы",phrasesShort:"Фразы",homeBtn:"🏠 Дом",tipLbl:"Совет Yavya",emg:"🆘 Экстренно: Полиция <b>102</b> · Скорая <b>103</b>",warn:"Цены <b>приблизительные</b>: расстояние по прямой и местный тариф. Договоритесь о цене <b>до</b> поездки. Наличные (₮) — стандарт.",locHint:"📍 Определяем местоположение…",pkFrom:"Откуда",pkHome:"Укажите отель или дом",searchDest:"Поиск места…",searchLoc:"Поиск вашего места…",searchHome:"Поиск отеля…",topDest:"Популярные места",topLoc:"Основные места",morePlaces:"Другие места",recent:"Недавние",gpsRow:"📍 Моё местоположение (GPS)",nothingList:"В списке нет.",searchMapFor:q=>`🗺 Искать на карте «${q}»`,searchingMap:"Ищем на карте…",mapNoResults:q=>`Вокруг Улан-Батора «${q}» не найдено. Проверьте написание или попробуйте английское либо монгольское название.`,mapFail:"Ошибка поиска. Проверьте соединение и повторите.",alreadyHere:"Вы уже здесь",locUnavail:"Локация недоступна",enableLoc:"Включите геолокацию или выберите Откуда",askEn:"Пожалуйста, отвезите меня сюда:",fairFare:"Честная цена · Шударга үнэ",arrived:"Приехали · Поблагодарить ›",cardNote:"Покажите экран водителю · Цена — до поездки",thanksEn:"Спасибо за поездку",tapNewTrip:"Нажмите для новой поездки",phraseHint:"Нажмите фразу — покажем крупно",zoomHint:"Нажмите, чтобы закрыть",back:"‹ Назад",rateTitle:"Тариф (₮/км)",rateDesc:"Такси в УБ берут за км. Обновите, если местные назовут текущий тариф.",cancel:"Отмена",save:"Сохранить",homeSaved:"Сохранено как ваш дом. Нажмите <b>🏠 Дом</b> в любой момент — карточка поездки домой появится сразу.",rideHomeQ:"Поехать домой сюда?",changeHome:"Изменить",goHomeBtn:"Домой ›",gotIt:"Понятно ›",gotItPlain:"Понятно",gpsTitle:"Геолокация не работает?",gpsIos:"<b>iPhone:</b> Настройки → Конфиденциальность и безопасность → Службы геолокации <b>Вкл</b>, ниже <b>Safari Websites</b> → <b>При использовании</b>.",gpsAndroid:"<b>Android:</b> Настройки → Локация <b>Вкл</b>. Chrome: ⋮ → Настройки → Настройки сайтов → Геоданные → <b>Разрешить</b>.",gpsThen:"Полностью закройте браузер и откройте приложение снова.",
+meanings:["Остановите здесь, пожалуйста","Сколько стоит?","Слишком дорого","Прямо","Налево","Направо","Подождите 5 минут","Помедленнее, пожалуйста","Заплачу наличными","Спасибо"]}
+};
+let lang = localStorage.getItem("yavya_lang") || "";
+const t = k => (I18N[lang] && I18N[lang][k]) || I18N.en[k];
+function applyLang(){
+  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.innerHTML = t(el.dataset.i18n); });
+  if(!fromLoc) $("fromVal").textContent = t("myLocation");
+  if(!toLoc){ const e=$("toVal"); e.textContent=t("chooseDest"); e.classList.add("pb-ph"); }
+  $("emptyState").innerHTML = '<span class="e-mark">₮</span>' + t("emptyText");
+  renderPhrases();
+}
+function openLang(){ $("langScreen").classList.add("on"); }
+function setLang(l){
+  lang = l; localStorage.setItem("yavya_lang", l);
+  $("langScreen").classList.remove("on");
+  applyLang();
+}
+
+/* ================= STATE ================= */
+let rate = Number(localStorage.getItem("yavya_rate")) || 2000;
+if(rate===2500){ rate=2000; localStorage.setItem("yavya_rate",2000); } // migrate old default
+let usdRate = Number(localStorage.getItem("yavya_usd")) || 3600; // MNT per USD, fallback
+(async()=>{
+  try{
+    const last = Number(localStorage.getItem("yavya_usd_t")||0);
+    if(Date.now()-last < 86400000) return;
+    const r = await fetch("https://open.er-api.com/v6/latest/USD");
+    const d = await r.json();
+    if(d && d.rates && d.rates.MNT){
+      usdRate = d.rates.MNT;
+      localStorage.setItem("yavya_usd", usdRate);
+      localStorage.setItem("yavya_usd_t", Date.now());
+    }
+  }catch(e){}
+})();
+const toUsd = t => (t/usdRate);
+let fromLoc = null;          // null = GPS (kept in sync with fromSel)
+let toLoc = null;
+let pickTarget = "to";
+let home = JSON.parse(localStorage.getItem("yavya_home")||"null");
+let goAfterCalc = false;
+let lastCalc = null;
+const fmt = n => n.toLocaleString("en-US");
+const $ = id => document.getElementById(id);
+
+/* ================= NAV ================= */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
+  $(id).classList.add("on");
+  window.scrollTo(0,0);
+}
+
+/* ================= PICKER ================= */
+function openPicker(target){
+  pickTarget = target;
+  $("pkTitle").textContent = target==="from" ? t("pkFrom") : target==="home" ? t("pkHome") : t("chooseDest");
+  $("gpsSec").style.display = target==="from" ? "block" : "none";
+  $("topSecT").textContent = target==="from" ? t("topLoc") : t("topDest");
+  $("searchBox").placeholder = target==="home" ? t("searchHome") : target==="from" ? t("searchLoc") : t("searchDest");
+  const isHome = target==="home";
+  $("topSec").style.display = isHome ? "none" : "block";
+  document.querySelectorAll(".cat").forEach(c=>{
+    if(isHome){
+      const isHotel = c.dataset.name.includes("Hotels");
+      c.style.display = isHotel ? "block" : "none";
+      if(isHotel) c.classList.add("open");
+    } else {
+      c.style.display = "block";
+    }
+  });
+  renderRecent(target);
+  clearSearch();
+  $("picker").classList.add("on");
+}
+function closePicker(){ $("picker").classList.remove("on"); }
+function saveRecent(dest){
+  let r = JSON.parse(localStorage.getItem("yavya_recent")||"[]");
+  r = r.filter(x=>x.en!==dest.en);
+  r.unshift({en:dest.en, mn:dest.mn, lat:dest.lat, lng:dest.lng});
+  localStorage.setItem("yavya_recent", JSON.stringify(r.slice(0,3)));
+}
+function pick(dest){
+  if(pickTarget==="from"){
+    fromLoc = dest;
+    saveRecent(dest);
+    $("fromVal").textContent = dest.en;
+    $("gpsInfoHome").style.display = "none";
+  } else if(pickTarget==="home"){
+    home = {en:dest.en, mn:dest.mn, lat:dest.lat, lng:dest.lng};
+    localStorage.setItem("yavya_home", JSON.stringify(home));
+    closePicker();
+    $("hmName").textContent = home.en;
+    $("hmText").innerHTML = t("homeSaved");
+    $("hmGo").textContent = t("gotIt");
+    $("homeModal").classList.add("on");
+    return;
+  } else {
+    toLoc = dest;
+    saveRecent(dest);
+    const el = $("toVal");
+    el.textContent = dest.en;
+    el.classList.remove("pb-ph");
+  }
+  closePicker();
+}
+function pickFromGps(){
+  fromLoc = null;
+  $("fromVal").textContent = t("myLocation");
+  $("gpsInfoHome").style.display = "";
+  closePicker();
+}
+
+function renderRecent(target){
+  const sec=$("recentSec"), list=$("recentList");
+  const r = JSON.parse(localStorage.getItem("yavya_recent")||"[]");
+  if(target==="home" || r.length===0){ sec.style.display="none"; return; }
+  sec.style.display="block";
+  list.innerHTML="";
+  r.forEach(d=>{
+    const b=document.createElement("button");
+    b.className="drow";
+    b.style.cssText="background:var(--card);box-shadow:var(--shadow);border-radius:12px;margin-bottom:6px;width:100%";
+    b.innerHTML=`<span>🕘 ${d.en}</span>`;
+    b.onclick=()=>pick(d);
+    list.appendChild(b);
+  });
+}
+function renderTop(){
+  TOP.forEach(d=>{
+    const b=document.createElement("button");
+    b.className="dtile";
+    b.innerHTML=`<div class="d-emo">${d.emo}</div><div class="d-en">${d.en}</div>`;
+    b.onclick=()=>pick(d);
+    $("topGrid").appendChild(b);
+  });
+}
+function renderCats(){
+  CATS.forEach(c=>{
+    const w=document.createElement("div");
+    w.className="cat";
+    w.dataset.name=c.name;
+    const items=c.items.map((d,i)=>`<button class="drow" data-i="${i}"><span>${d.en}</span></button>`).join("");
+    w.innerHTML=`<button class="cat-h">${c.name}<span class="c-arr">›</span></button><div class="cat-list">${items}</div>`;
+    w.querySelector(".cat-h").onclick=()=>w.classList.toggle("open");
+    w.querySelectorAll(".drow").forEach(btn=>{
+      btn.onclick=()=>pick(c.items[Number(btn.dataset.i)]);
+    });
+    $("catList").appendChild(w);
+  });
+}
+
+/* ================= SEARCH ================= */
+let searchTimer=null;
+$("searchBox").oninput = e=>{
+  const q=e.target.value.trim();
+  $("sClear").classList.toggle("on", q.length>0);
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>doSearch(q), 250);
+};
+function clearSearch(){
+  $("searchBox").value="";
+  $("sClear").classList.remove("on");
+  doSearch("");
+}
+function doSearch(q){
+  const res=$("searchRes"), browse=$("browse");
+  if(!q){ res.classList.remove("on"); res.innerHTML=""; browse.style.display="block"; return; }
+  browse.style.display="none";
+  res.classList.add("on");
+  const ql=q.toLowerCase();
+  const seen=new Set();
+  const uniq=ALL.filter(d=>(d.en.toLowerCase().includes(ql)||d.mn.toLowerCase().includes(ql)) && !seen.has(d.en) && seen.add(d.en));
+  let html="";
+  uniq.slice(0,6).forEach((d,i)=>{
+    html+=`<button class="drow" data-i="${i}"><span>${d.en}</span></button>`;
+  });
+  html+=`<button class="mapbtn" id="mapSearchBtn">${t("searchMapFor")(q)}</button>`;
+  res.innerHTML=html;
+  res.querySelectorAll(".drow").forEach((btn,i)=>btn.onclick=()=>pick(uniq[i]));
+  $("mapSearchBtn").onclick=()=>mapSearch(q);
+  if(uniq.length===0) mapSearch(q);  // nothing local -> go straight to the map
+}
+
+async function mapSearch(q){
+  const btn=$("mapSearchBtn");
+  btn.classList.add("loading"); btn.textContent=t("searchingMap");
+  try{
+    const url=`https://nominatim.openstreetmap.org/search?format=json&limit=5&viewbox=106.60,48.05,107.60,47.60&bounded=1&q=${encodeURIComponent(q)}`;
+    const r=await fetch(url,{headers:{"Accept":"application/json"}});
+    const data=await r.json();
+    const res=$("searchRes");
+    let html="";
+    if(data.length===0){
+      html=`<div class="nores">${t("mapNoResults")(q)}</div>`;
+    } else {
+      data.forEach((p,i)=>{
+        const short=p.display_name.split(",").slice(0,2).join(", ");
+        html+=`<button class="drow" data-i="${i}"><span>📍 ${short}</span></button>`;
+      });
+    }
+    res.innerHTML=html;
+    res.querySelectorAll(".drow").forEach((btn2,i)=>{
+      btn2.onclick=()=>pick({en:data[i].display_name.split(",")[0], mn:data[i].display_name.split(",")[0], lat:Number(data[i].lat), lng:Number(data[i].lon)});
+    });
+  }catch(e){
+    btn.classList.remove("loading");
+    btn.textContent=t("mapFail");
+  }
+}
+
+/* ================= FARE ================= */
+function openGpsHelp(){ $("gpsModal").classList.add("on"); }
+function closeHomeModal(){ $("homeModal").classList.remove("on"); }
+function goHome(){
+  if(!home){ openPicker("home"); return; }
+  $("hmName").textContent = home.en;
+  $("hmText").innerHTML = t("rideHomeQ");
+  $("hmGo").textContent = t("goHomeBtn");
+  $("homeModal").classList.add("on");
+}
+function goHomeNow(){
+  toLoc = home;
+  const el=$("toVal"); el.textContent=home.en; el.classList.remove("pb-ph");
+  goAfterCalc = true;
+  calc();
+}
+function calc(){
+  if(!toLoc){ openPicker("to"); return; }
+  const btn=$("goBtn");
+  const done=from=>{
+    btn.classList.remove("loading");
+    $("locHint").classList.remove("on");
+    if(!from){ showResult(null); return; }
+    showResult(haversine(from.lat,from.lng,toLoc.lat,toLoc.lng)*1.35);
+  };
+  if(fromLoc){ done(fromLoc); }
+  else if(!navigator.geolocation){ done(null); }
+  else{
+    btn.classList.add("loading");
+    $("locHint").classList.add("on");
+    navigator.geolocation.getCurrentPosition(
+      p=>done({lat:p.coords.latitude,lng:p.coords.longitude}),
+      ()=>done(null), {timeout:8000,maximumAge:120000});
+  }
+}
+function showResult(km){
+  $("emptyState").style.display="none";
+  $("fareState").style.display="block";
+  if(km===null){
+    $("rKm").textContent=t("locUnavail");
+    $("rUsd").textContent="";
+    $("rFare").textContent=fmt(rate)+" ₮/km";
+    $("rSub").textContent=t("enableLoc");
+    lastCalc={to:toLoc,fare:null,km:null};
+  } else if(km<0.3){
+    $("rKm").textContent="";
+    $("rUsd").textContent="";
+    $("rFare").textContent=t("alreadyHere");
+    $("rSub").textContent="";
+    lastCalc=null; return;
+  } else {
+    const fare=roundT(km*rate);
+    $("rKm").textContent=t("kmByRoad")(km.toFixed(1));
+    $("rFare").textContent=`${fmt(fare)} ₮`;
+    const usd=`≈ $${toUsd(fare).toFixed(1)}`;
+    $("rUsd").textContent=usd;
+    $("rSub").textContent=t("fareSub")(fmt(rate));
+    lastCalc={to:toLoc,fare:`${fmt(fare)} ₮`,usd,km};
+  }
+  if(goAfterCalc){ goAfterCalc=false; if(lastCalc) openCard(); }
+}
+function openCard(){
+  if(!lastCalc) return;
+  $("cMn").textContent=lastCalc.to.mn;
+  $("cEn").textContent=lastCalc.to.en;
+  $("cFare").textContent=lastCalc.fare||fmt(rate)+" ₮/km";
+  $("cUsd").textContent=lastCalc.usd||"";
+  $("cKm").textContent=lastCalc.km?`≈ ${lastCalc.km.toFixed(1)} km`:"";
+  show("card");
+}
+function haversine(a,b,c,d){
+  const R=6371,r=x=>x*Math.PI/180;
+  const h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+const roundT=v=>Math.round(v/500)*500;
+
+/* ================= PHRASES ================= */
+function renderPhrases(){
+  $("phList").innerHTML="";
+  const M = t("meanings");
+  PHRASES.forEach((p,i)=>{
+    const el=document.createElement("button");
+    el.className="ph";
+    el.innerHTML=`<div class="p-mn">${p.mn}</div><div class="p-say">"${p.say}"</div><div class="p-en">${M[i]}</div>`;
+    el.onclick=()=>{
+      $("zMn").textContent=p.mn;
+      $("zSay").textContent='"'+p.say+'"';
+      $("zEn").textContent=M[i];
+      $("zoom").classList.add("on");
+    };
+    $("phList").appendChild(el);
+  });
+}
+
+/* ================= TIPS ================= */
+let ytipIndex = Math.floor(Math.random()*YTIPS.length);
+function setYtip(){
+  const el=$("ytip"), tx=$("ytipText");
+  const t=YTIPS[(ytipIndex%YTIPS.length+YTIPS.length)%YTIPS.length];
+  if(tx.textContent===t) return;
+  el.classList.add("fade");
+  setTimeout(()=>{ tx.textContent=t; el.classList.remove("fade"); },300);
+}
+function nextYtip(){ ytipIndex++; setYtip(); }
+function prevYtip(){ ytipIndex--; setYtip(); }
+
+
+/* ================= RATE ================= */
+function openRate(){ $("rateInput").value=rate; $("rateModal").classList.add("on"); }
+function closeRate(){ $("rateModal").classList.remove("on"); }
+function saveRate(){
+  const v=Number($("rateInput").value);
+  if(v>=500&&v<=20000){ rate=v; localStorage.setItem("yavya_rate",v); $("rateShow").textContent=fmt(rate); }
+  closeRate();
+}
+
+/* ================= INIT ================= */
+$("rateShow").textContent=fmt(rate);
+renderTop();
+renderCats();
+if(!lang){
+  const guess = (navigator.language||"en").slice(0,2);
+  const supported = ["en","ko","ja","zh","ru"];
+  lang = supported.includes(guess) ? guess : "en";
+  document.querySelectorAll("#langScreen .lg-list button").forEach(b=>{
+    if(b.getAttribute("onclick").includes("'"+lang+"'")) b.classList.add("hint");
+  });
+  $("langScreen").classList.add("on");
+}
+applyLang();
+setYtip();
+</script>
+<script>
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("/sw.js"); }
+</script>
+</body>
+</html>
